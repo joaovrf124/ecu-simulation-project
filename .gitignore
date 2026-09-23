@@ -1,0 +1,11 @@
+build/*
+!build/.gitkeep
+
+*.o
+ecu_simulator
+
+data/logs/*.csv
+!data/logs/.gitkeep
+
+.vscode/
+.idea/
