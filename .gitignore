@@ -3,7 +3,7 @@ build/*
 
 *.o
 ecu_simulator
-
+build/
 data/logs/*.csv
 !data/logs/.gitkeep
 
