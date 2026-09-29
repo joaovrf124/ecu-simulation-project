@@ -104,3 +104,47 @@
   * `ShutdownOpenFault` — sinalizar abertura do *Shutdown System*.
   * `PrechargeTimeoutFault` — sinalizar estouro do *timeout* da sequência de pré-carga.
 * **Colaborações:** `SensorManager`, `SafetyMonitor`, `ECUController`.
+
+---
+
+## Diagrama de classes (Mermaid)
+
+```mermaid
+classDiagram
+    class VehicleState {
+        <<abstract>>
+    }
+    class IdleState
+    class DriveState
+    class FaultState
+    IdleState --|> VehicleState
+    DriveState --|> VehicleState
+    FaultState --|> VehicleState
+
+    class EcuException {
+        <<abstract>>
+    }
+    class TelemetryParseError
+    class UndervoltageFault
+    class OvertemperatureFault
+    class ShutdownOpenFault
+    class PrechargeTimeoutFault
+    TelemetryParseError --|> EcuException
+    UndervoltageFault --|> EcuException
+    OvertemperatureFault --|> EcuException
+    ShutdownOpenFault --|> EcuException
+    PrechargeTimeoutFault --|> EcuException
+
+    ECUController --> VehicleState
+    ECUController --> SensorManager
+    ECUController --> SafetyMonitor
+    ECUController --> TorqueMapper
+    ECUController --> DataLogger
+    VehicleState --> TorqueMapper
+    VehicleState --> DataLogger
+    TorqueMapper --> SensorManager
+    SafetyMonitor --> SensorManager
+    DataLogger --> SensorManager
+    SafetyMonitor ..> EcuException
+    SensorManager ..> EcuException
+```
