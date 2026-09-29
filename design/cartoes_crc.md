@@ -9,7 +9,7 @@
   * Executar o loop principal (*Main Loop*) de atualização contínua.
   * Delegar o cálculo final de torque requisitado para a classe mapeadora.
   * Forçar a transição para o estado de *Fault* caso receba sinal de abertura do *Shutdown System*.
-* **Colaborações:** `VehicleState`, `SensorManager`, `SafetyMonitor`.
+* **Colaborações:** `VehicleState`, `SensorManager`, `SafetyMonitor`, `TorqueMapper`, `DataLogger`.
 
 ### 2. Classe: `VehicleState`
 * **Superclasse:** — (classe base abstrata)
@@ -31,7 +31,7 @@
   * Calcular a interpolação linear entre os pontos da tabela para encontrar o torque exato.
   * Aplicar o algoritmo de rampa (*ramping*) otimizado para o limite de tração mecânica.
   * Limitar a requisição de torque final ao teto máximo de segurança do motor.
-* **Colaborações:** `SensorManager`, `VehicleState`.
+* **Colaborações:** `SensorManager`, `VehicleState`, `ECUController`.
 
 ### 4. Classe: `SensorManager`
 * **Superclasse:** —
@@ -42,7 +42,7 @@
   * Conhecer e fornecer a posição momentânea do pedal do acelerador.
   * Conhecer e fornecer as temperaturas do motor e bateria, além da pressão do freio e tensão geral.
   * Avançar a leitura para a próxima linha (próximo *tick* de tempo da simulação).
-* **Colaborações:** `ECUController`, `SafetyMonitor`.
+* **Colaborações:** `ECUController`, `SafetyMonitor`, `TorqueMapper`, `DataLogger`.
 
 ### 5. Classe: `SafetyMonitor`
 * **Superclasse:** —
@@ -64,4 +64,4 @@
   * Registrar a troca entre os modos Eco, MidTerm e Sport com precisão de tempo.
   * Registrar os eventos de erro crítico, alertas termais ou abertura inesperada do *Shutdown System*.
   * Garantir o salvamento físico dos dados no disco mesmo em caso de travamento do controlador.
-* **Colaborações:** `ECUController`, `SensorManager`.
+* **Colaborações:** `ECUController`, `SensorManager`, `VehicleState`.
