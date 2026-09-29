@@ -65,3 +65,42 @@
   * Registrar os eventos de erro crítico, alertas termais ou abertura inesperada do *Shutdown System*.
   * Garantir o salvamento físico dos dados no disco mesmo em caso de travamento do controlador.
 * **Colaborações:** `ECUController`, `SensorManager`, `VehicleState`.
+
+### 7. Classe: `IdleState`
+* **Superclasse:** `VehicleState`
+* **Módulo/Namespace:** `ecu::state`
+* **Responsabilidades:**
+  * Manter o veículo em pronto-sem-tração, ignorando o input do pedal do acelerador.
+  * Bloquear a troca dos mapas Eco/MidTerm/Sport enquanto ativo.
+  * Autorizar a transição para `DriveState` apenas quando o `SafetyMonitor` confirmar pré-carga concluída dentro do *timeout*.
+* **Colaborações:** `ECUController`, `SafetyMonitor`, `TorqueMapper`.
+
+### 8. Classe: `DriveState`
+* **Superclasse:** `VehicleState`
+* **Módulo/Namespace:** `ecu::state`
+* **Responsabilidades:**
+  * Processar o input do pedal e encaminhá-lo ao `TorqueMapper`.
+  * Autorizar a troca dinâmica de mapas Eco/MidTerm/Sport durante a condução.
+  * Transitar para `FaultState` sob qualquer sinalização crítica emitida pelo `SafetyMonitor`.
+* **Colaborações:** `ECUController`, `TorqueMapper`, `SafetyMonitor`, `DataLogger`.
+
+### 9. Classe: `FaultState`
+* **Superclasse:** `VehicleState`
+* **Módulo/Namespace:** `ecu::state`
+* **Responsabilidades:**
+  * Ignorar por completo o input do pedal do acelerador.
+  * Zerar a requisição de torque enviada ao `TorqueMapper`.
+  * Manter registro contínuo do motivo da falha via `DataLogger` até o encerramento da simulação.
+* **Colaborações:** `ECUController`, `TorqueMapper`, `DataLogger`.
+
+### 10. Classe: `EcuException` (hierarquia de exceções)
+* **Superclasse:** `std::exception`
+* **Módulo/Namespace:** `ecu::exceptions`
+* **Responsabilidades:**
+  * Servir como classe base para todas as falhas específicas do simulador, expondo mensagem via `what()`.
+  * `TelemetryParseError` — sinalizar linhas do CSV que não puderam ser interpretadas pelo `SensorManager`.
+  * `UndervoltageFault` — sinalizar leitura de tensão da bateria abaixo de 60V.
+  * `OvertemperatureFault` — sinalizar temperatura crítica (>= 80°C) em motor ou bateria.
+  * `ShutdownOpenFault` — sinalizar abertura do *Shutdown System*.
+  * `PrechargeTimeoutFault` — sinalizar estouro do *timeout* da sequência de pré-carga.
+* **Colaborações:** `SensorManager`, `SafetyMonitor`, `ECUController`.
