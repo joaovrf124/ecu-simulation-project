@@ -1,6 +1,8 @@
 ## Cartões CRC: Modelagem da ECU
 
 ### 1. Classe: `ECUController`
+* **Superclasse:** —
+* **Módulo/Namespace:** `ecu::core`
 * **Responsabilidades:**
   * Inicializar todos os subsistemas da simulação.
   * Conhecer o estado atual do veículo na Máquina de Estados Finitos (FSM).
@@ -10,6 +12,8 @@
 * **Colaborações:** `VehicleState`, `SensorManager`, `SafetyMonitor`.
 
 ### 2. Classe: `VehicleState`
+* **Superclasse:** — (classe base abstrata)
+* **Módulo/Namespace:** `ecu::state`
 * **Responsabilidades:**
   * Definir a interface padrão para os estados do carro (*Idle*, *Drive*, *Fault*).
   * Conhecer as regras de transição permitidas a partir do estado momentâneo atual.
@@ -19,6 +23,8 @@
 * **Colaborações:** `ECUController`, `TorqueMapper`, `DataLogger`.
 
 ### 3. Classe: `TorqueMapper`
+* **Superclasse:** —
+* **Módulo/Namespace:** `ecu::control`
 * **Responsabilidades:**
   * Conhecer qual a tabela de mapeamento atual (Eco, MidTerm ou Sport) está selecionada.
   * Receber a porcentagem bruta do pedal do acelerador lida pelos sensores.
@@ -28,6 +34,8 @@
 * **Colaborações:** `SensorManager`, `VehicleState`.
 
 ### 4. Classe: `SensorManager`
+* **Superclasse:** —
+* **Módulo/Namespace:** `ecu::io`
 * **Responsabilidades:**
   * Conhecer o caminho e o nome do arquivo CSV de entrada para a simulação.
   * Abrir, ler e validar os dados de telemetria simulada, pulando falhas de formatação.
@@ -37,6 +45,8 @@
 * **Colaborações:** `ECUController`, `SafetyMonitor`.
 
 ### 5. Classe: `SafetyMonitor`
+* **Superclasse:** —
+* **Módulo/Namespace:** `ecu::safety`
 * **Responsabilidades:**
   * Validar continuamente se o *Shutdown System* encontra-se fechado e operacional.
   * Monitorar a tensão da bateria, acionando falha se cair abaixo de 60V.
@@ -46,6 +56,8 @@
 * **Colaborações:** `SensorManager`, `ECUController`.
 
 ### 6. Classe: `DataLogger`
+* **Superclasse:** —
+* **Módulo/Namespace:** `ecu::io`
 * **Responsabilidades:**
   * Conhecer o diretório e o nome do arquivo de saída de telemetria do sistema (`.txt`).
   * Gravar as variáveis contínuas (pedal, torque, temperatura) anexando o *timestamp* do ciclo.
