@@ -23,22 +23,26 @@ Este projeto implementa em C++11, executando no terminal, um simulador dessa ECU
 ecu-simulation-project/
 ├── include/            # Cabeçalhos .hpp — especificação (contrato) das classes
 │   ├── core/           #   núcleo da simulação (motor, orquestrador, tempo)
+│   ├── state/          #   máquina de estados do veículo (Idle, Drive, Fault)
 │   ├── sensors/        #   hierarquia Sensor e sensores concretos (RPM, TPS, MAP, ECT, IAT, O2)
 │   ├── actuators/      #   hierarquia Actuator (injetor, bobina, ventoinha, IAC)
 │   ├── control/        #   estratégias de controle (injeção, ignição, PID lambda, limitador, limp mode)
 │   ├── calibration/    #   tabelas 2D/3D e interpolação
 │   ├── diagnostics/    #   DTCs no estilo OBD-II e detecção de falhas
+│   ├── safety/         #   monitor de segurança (Shutdown System, subtensão, sobretemperatura, pré-carga)
 │   ├── io/             #   leitura de mapas/cenários e escrita de logs CSV
 │   ├── exceptions/     #   hierarquia de exceções derivada de std::exception
 │   └── ui/             #   interface de menu no terminal
 ├── src/                # Implementações .cpp — espelham a estrutura de include/
 │   ├── main.cpp        #   ponto de entrada
 │   ├── core/
+│   ├── state/
 │   ├── sensors/
 │   ├── actuators/
 │   ├── control/
 │   ├── calibration/
 │   ├── diagnostics/
+│   ├── safety/
 │   ├── io/
 │   ├── exceptions/
 │   └── ui/
