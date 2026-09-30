@@ -1,0 +1,33 @@
+# Doxyfile — Simulador de ECU (PDS2/UFMG)
+# Gera a documentação de API a partir dos comentários Doxygen nos headers.
+# Saída: build/docs/ (ignorada pelo Git).
+
+PROJECT_NAME           = "Simulador de ECU"
+PROJECT_BRIEF          = "Simulador em C++11 da ECU de um veiculo eletrico"
+OUTPUT_DIRECTORY       = build/docs
+OUTPUT_LANGUAGE        = Brazilian
+
+INPUT                  = include README.md
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.h *.md
+USE_MDFILE_AS_MAINPAGE = README.md
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+MARKDOWN_SUPPORT       = YES
+BUILTIN_STL_SUPPORT    = YES
+
+HAVE_DOT               = NO
