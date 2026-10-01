@@ -4,16 +4,22 @@ Projeto final da disciplina **Programação e Desenvolvimento de Software 2 (PDS
 
 ## Descrição do problema
 
-Uma ECU (Engine Control Unit) é o computador embarcado responsável por controlar o funcionamento de um motor de combustão interna: ela lê sensores, executa estratégias de controle (injeção de combustível, ignição, malha fechada lambda, marcha lenta) e comanda atuadores em tempo real, além de detectar falhas e registrar códigos de diagnóstico (DTCs).
+Uma ECU (Engine Control Unit) é o computador embarcado responsável por gerenciar a propulsão de um veículo em tempo real: ela lê a telemetria do carro, decide como responder ao comando do piloto e monitora continuamente as condições de segurança elétrica e térmica que determinam se o veículo pode ou não seguir em tração.
 
-Este projeto implementa em C++11, executando no terminal, um simulador dessa ECU acoplado a um modelo simplificado de motor. Cenários de condução e tabelas de calibração são carregados de arquivos de texto; as séries temporais resultantes são exportadas em CSV para análise posterior.
+Este projeto implementa em C++11, executando no terminal, um simulador da ECU de um **veículo elétrico**. A simulação é organizada em torno de:
+
+- Uma **Máquina de Estados Finitos** para o veículo, com os estados **Idle**, **Drive** e **Fault**, aplicando o padrão *State* — cada estado decide se o pedal do acelerador é processado, se a troca de mapas é permitida e para quais estados a transição é aceita.
+- Um **mapeador de torque** que converte a posição bruta do pedal em torque final, selecionando entre as tabelas de calibração **Eco**, **MidTerm** e **Sport** por interpolação linear, com rampa mecânica e teto de segurança.
+- Um **monitor de segurança** que valida o *Shutdown System*, a tensão da bateria (falha se cair abaixo de 60 V), a temperatura de motor e bateria (alerta aos 60 °C, falha crítica aos 80 °C) e o *timeout* da sequência de pré-carga.
+- Um **fluxo de telemetria** lido de um arquivo CSV (posição do pedal, temperaturas, pressão de freio, tensão) e um **logger** que grava a série temporal — pedal, torque, temperaturas, trocas de mapa e eventos críticos — em arquivo de texto para análise posterior.
 
 ## Objetivos
 
 - Aplicar os fundamentos de POO (encapsulamento, herança, polimorfismo, tratamento de exceções) em um sistema de porte médio.
-- Modelar hierarquias de classes abstratas para sensores, atuadores e estratégias de controle.
+- Modelar a Máquina de Estados do veículo com uma classe base abstrata (`VehicleState`) e três estados concretos (`IdleState`, `DriveState`, `FaultState`).
+- Estruturar uma hierarquia de exceções própria (`EcuException` e derivadas) para representar falhas específicas do simulador — subtensão, sobretemperatura, abertura do *Shutdown System*, *timeout* de pré-carga e erro de parse da telemetria.
 - Praticar modularização, separação entre especificação (`.hpp`) e implementação (`.cpp`), e compilação incremental com `make`.
-- Trabalhar com persistência em arquivos de texto (mapas de calibração, cenários, logs).
+- Trabalhar com persistência em arquivos de texto (cenário de condução em CSV, log de telemetria em `.txt`).
 - Produzir documentação técnica com Doxygen.
 - Cobrir o comportamento das classes com testes automatizados (doctest).
 
@@ -22,30 +28,20 @@ Este projeto implementa em C++11, executando no terminal, um simulador dessa ECU
 ```
 ecu-simulation-project/
 ├── include/            # Cabeçalhos .hpp — especificação (contrato) das classes
-│   ├── core/           #   núcleo da simulação (motor, orquestrador, tempo)
-│   ├── state/          #   máquina de estados do veículo (Idle, Drive, Fault)
-│   ├── sensors/        #   hierarquia Sensor e sensores concretos (RPM, TPS, MAP, ECT, IAT, O2)
-│   ├── actuators/      #   hierarquia Actuator (injetor, bobina, ventoinha, IAC)
-│   ├── control/        #   estratégias de controle (injeção, ignição, PID lambda, limitador, limp mode)
-│   ├── calibration/    #   tabelas 2D/3D e interpolação
-│   ├── diagnostics/    #   DTCs no estilo OBD-II e detecção de falhas
-│   ├── safety/         #   monitor de segurança (Shutdown System, subtensão, sobretemperatura, pré-carga)
-│   ├── io/             #   leitura de mapas/cenários e escrita de logs CSV
-│   ├── exceptions/     #   hierarquia de exceções derivada de std::exception
-│   └── ui/             #   interface de menu no terminal
+│   ├── core/           #   ECUController: orquestrador e Main Loop
+│   ├── state/          #   VehicleState + IdleState/DriveState/FaultState
+│   ├── control/        #   TorqueMapper (mapas Eco/MidTerm/Sport)
+│   ├── safety/         #   SafetyMonitor (Shutdown, subtensão, temperatura, pré-carga)
+│   ├── io/             #   SensorManager (CSV de entrada) e DataLogger (telemetria)
+│   └── exceptions/     #   Hierarquia EcuException e derivadas
 ├── src/                # Implementações .cpp — espelham a estrutura de include/
 │   ├── main.cpp        #   ponto de entrada
 │   ├── core/
 │   ├── state/
-│   ├── sensors/
-│   ├── actuators/
 │   ├── control/
-│   ├── calibration/
-│   ├── diagnostics/
 │   ├── safety/
 │   ├── io/
-│   ├── exceptions/
-│   └── ui/
+│   └── exceptions/
 ├── tests/              # Testes com doctest (header único)
 ├── data/               # Dados de entrada e saída em texto
 │   ├── maps/           #   tabelas de calibração
@@ -53,6 +49,7 @@ ecu-simulation-project/
 │   └── logs/           #   séries temporais em CSV geradas pela execução
 ├── design/             # Modelagem: user stories, cartões CRC, diagramas UML, decisões de arquitetura
 ├── build/              # Objetos, binários e saída do Doxygen em build/docs/ (conteúdo ignorado pelo Git)
+├── Doxyfile
 ├── Makefile
 ├── README.md
 └── .gitignore
@@ -72,7 +69,23 @@ ecu-simulation-project/
 
 ## Documentação
 
-Artefatos de modelagem (user stories, cartões CRC e diagramas UML) ficam em `design/`. A documentação de API é gerada pelo Doxygen a partir dos comentários dos cabeçalhos (`@brief`, `@param`, `@return`, `@throws`) e sai em `build/docs/` ao executar `make docs` — esta saída não é versionada.
+Artefatos de modelagem — user stories, cartões CRC e diagrama de classes — ficam em `design/`.
+
+A documentação de API é gerada a partir dos comentários Doxygen (`@brief`, `@param`, `@return`, `@throws`) presentes nos cabeçalhos `.hpp`. A saída fica em `build/docs/` e **não é versionada**.
+
+Para gerar a documentação diretamente com o Doxygen:
+
+```
+doxygen Doxyfile
+```
+
+Uma vez que o `Makefile` esteja disponível, o alvo equivalente será:
+
+```
+make docs
+```
+
+O `Doxyfile` já vem configurado com `OUTPUT_DIRECTORY = build/docs`, `RECURSIVE = YES`, `USE_MDFILE_AS_MAINPAGE = README.md`, `OUTPUT_LANGUAGE = Brazilian` e `EXTRACT_PRIVATE = YES`.
 
 ## Integrantes
 
