@@ -57,15 +57,50 @@ ecu-simulation-project/
 
 ## Compilação e Execução
 
-*Em construção.* Será provido um `Makefile` com os alvos `make`, `make run`, `make test`, `make clean` e `make docs`.
+O projeto é compilado com `g++` em C++11 estrito. O `Makefile` na raiz fornece os alvos:
+
+| Alvo         | Descrição                                                                 |
+|--------------|---------------------------------------------------------------------------|
+| `make`       | Compila todos os `.cpp` de `src/` (e subpastas) em `build/`, mantendo a estrutura de diretórios, e gera o executável `build/ecu_simulator`. |
+| `make run`   | Compila (se necessário) e executa `build/ecu_simulator`.                  |
+| `make test`  | Compila os testes de `tests/` com os `.cpp` do projeto (exceto `main.cpp`) e executa `build/tests_runner`. |
+| `make clean` | Remove tudo o que foi gerado em `build/`.                                 |
+| `make docs`  | Gera a documentação Doxygen em `build/docs/`.                             |
+
+As flags obrigatórias (`-std=c++11 -Wall -Wextra -I include`) já são definidas no `Makefile`, assim como `-MMD -MP` para dependências automáticas de headers.
+
+No Linux, basta ter `g++` e `make` instalados. No Windows, use o MSYS2 (`pacman -S make mingw-w64-x86_64-gcc`) ou invoque `mingw32-make` dentro do MSYS2/MinGW.
 
 ## Funcionalidades
 
-*Em construção.*
+*Em construção.* As funcionalidades serão habilitadas progressivamente nos próximos checkpoints — o C7 fixa apenas o contrato das classes e os testes TDD; a lógica interna é implementada no C8.
 
 ## Testes
 
-*Em construção.*
+A suíte de testes utiliza [doctest](https://github.com/doctest/doctest) (header único em `tests/third_party/doctest.h`). Cada classe de domínio tem seu próprio arquivo de teste em `tests/`:
+
+- `test_exceptions.cpp`      — hierarquia `EcuException` e derivadas.
+- `test_states.cpp`          — `VehicleState`, `IdleState`, `DriveState`, `FaultState`.
+- `test_sensor_manager.cpp`  — leitura de CSV, linhas inválidas, erro de abertura.
+- `test_torque_mapper.cpp`   — interpolação, rampa, teto de segurança, modos.
+- `test_safety_monitor.cpp`  — limites de 60 V, 60 °C, 80 °C e *timeout* de pré-carga.
+- `test_data_logger.cpp`     — gravação de amostras, trocas de modo, alertas e erros.
+- `test_ecu_controller.cpp`  — estado inicial, transição para `FaultState`, acesso aos colaboradores.
+
+Para rodar:
+
+```
+make test
+```
+
+### Status atual — fase vermelha do TDD
+
+Este checkpoint (C7) adota a disciplina de TDD: os testes foram escritos **antes** da implementação, a partir dos critérios de aceitação das user stories em `design/user_stories.md`. As classes de domínio em `src/` existem apenas como esqueletos (métodos retornam valores padrão ou nada fazem, marcados com `// TODO C8`).
+
+Como consequência, hoje:
+
+- Os testes de `test_exceptions.cpp` **passam** (as exceções são `inline` nos headers e já estão prontas).
+- Os demais testes **falham** intencionalmente — isso é a fase vermelha do ciclo *red → green → refactor* e será resolvida no checkpoint C8, quando a lógica interna de cada classe for implementada.
 
 ## Documentação
 
