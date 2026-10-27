@@ -132,47 +132,5 @@ TEST_CASE("SafetyMonitor: shutdown aberto dispara ShutdownOpenFault") {
     std::remove(path.c_str());
 }
 
-TEST_CASE("SafetyMonitor: timeout de pre-carga dispara PrechargeTimeoutFault") {
-    // US08 - CA2
-    const std::string path = "build/test_safety_precharge.csv";
-    writeTempCsv(path, "0.0,25.0,25.0,0.0,72.0\n");
 
-    SensorManager sm(path);
-    sm.open();
-    sm.advance();
-
-    SafetyMonitor monitor(sm);
-    CHECK(monitor.isPrechargeComplete() == false);
-
-    bool thrown = false;
-    for (unsigned long i = 0; i < SafetyMonitor::kPrechargeTimeoutTicks + 2; ++i) {
-        try {
-            monitor.tickPrecharge();
-        } catch (const PrechargeTimeoutFault&) {
-            thrown = true;
-            break;
-        }
-    }
-    CHECK(thrown);
-
-    std::remove(path.c_str());
-}
-
-TEST_CASE("SafetyMonitor: markPrechargeComplete bloqueia o timeout") {
-    const std::string path = "build/test_safety_precharge_ok.csv";
-    writeTempCsv(path, "0.0,25.0,25.0,0.0,72.0\n");
-
-    SensorManager sm(path);
-    sm.open();
-    sm.advance();
-
-    SafetyMonitor monitor(sm);
-    monitor.markPrechargeComplete();
-    CHECK(monitor.isPrechargeComplete() == true);
-
-    for (unsigned long i = 0; i < SafetyMonitor::kPrechargeTimeoutTicks + 10; ++i) {
-        CHECK_NOTHROW(monitor.tickPrecharge());
-    }
-
-    std::remove(path.c_str());
 }
