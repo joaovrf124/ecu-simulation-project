@@ -30,8 +30,9 @@ ecu-simulation-project/
 ├── include/            # Cabeçalhos .hpp — especificação (contrato) das classes
 │   ├── core/           #   ECUController: orquestrador e Main Loop
 │   ├── state/          #   VehicleState + IdleState/DriveState/FaultState
-│   ├── control/        #   TorqueMapper (mapas Eco/MidTerm/Sport)
+│   ├── control/        #   TorqueMapper (mapas) e TractionControl (TCS via PID)
 │   ├── safety/         #   SafetyMonitor (Shutdown, subtensão, temperatura, pré-carga)
+│   ├── sensors/        #   SignalFilter (Filtro Passa-Baixa / EMA)
 │   ├── io/             #   SensorManager (CSV de entrada) e DataLogger (telemetria)
 │   └── exceptions/     #   Hierarquia EcuException e derivadas
 ├── src/                # Implementações .cpp — espelham a estrutura de include/
@@ -40,6 +41,7 @@ ecu-simulation-project/
 │   ├── state/
 │   ├── control/
 │   ├── safety/
+│   ├── sensors/
 │   ├── io/
 │   └── exceptions/
 ├── tests/              # Testes com doctest (header único)
