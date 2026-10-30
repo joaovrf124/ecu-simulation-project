@@ -157,7 +157,11 @@ TEST_CASE("ECUController: stop() marca encerramento do loop") {
     controller.stop();
     CHECK_NOTHROW(controller.run());
 
-    TEST_CASE("ECUController: tick com sobretemperatura no inversor transita para FaultState") {
+    std::remove(csv.c_str());
+    std::remove(log.c_str());
+}
+
+TEST_CASE("ECUController: tick com sobretemperatura no inversor transita para FaultState") {
     // Avalia o comportamento de protecao termica (SafetyMonitor)
     const std::string csv = "build/test_ctrl_tick_overtemp.csv";
     const std::string log = "build/test_ctrl_tick_overtemp.log";
