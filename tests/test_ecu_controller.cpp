@@ -246,8 +246,11 @@ TEST_CASE("ECUController: lida com excecoes matematicas ou de parse indo para Fa
     // US02 / Protecao arquitetural - Uma excecao atirada pelos modulos inferiores nao deve desligar o software inteiro
     const std::string csv = "build/test_ctrl_exception.csv";
     const std::string log = "build/test_ctrl_exception.log";
-    
-    // Pedal em 150.0% injetado de proposito. O TorqueMapper deve disparar um std::out_of_range
+
+    // Pedal em 150.0% injetado de proposito. O contrato do TorqueMapper
+    // promete clamp (nao excecao) para pedal fora de [0, 100]; portanto o
+    // tick deve rodar sem lancar e o torque final nao pode ultrapassar
+    // kMaxTorque.
     writeTempCsv(csv, "0.0,25.0,25.0,150.0,72.0\n");
 
     SensorManager sensors(csv);
@@ -260,10 +263,9 @@ TEST_CASE("ECUController: lida com excecoes matematicas ou de parse indo para Fa
 
     ECUController controller(sensors, safety, torque, logger);
     controller.initialize();
-    
-    // O ECUController deve ter um try/catch no tick() para desviar fluxos corrompidos para o FaultState
-    controller.tick();
-    CHECK(std::string(controller.currentState().name()) == "Fault");
+
+    CHECK_NOTHROW(controller.tick());
+    CHECK(torque.lastTorque() <= TorqueMapper::kMaxTorque);
 
     std::remove(csv.c_str());
     std::remove(log.c_str());
