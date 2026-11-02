@@ -5,6 +5,7 @@ build/*
 ecu_simulator
 build/
 data/logs/*.csv
+data/logs/*.log
 !data/logs/.gitkeep
 
 .vscode/
