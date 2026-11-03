@@ -64,7 +64,7 @@ O projeto é compilado com `g++` em C++11 estrito. O `Makefile` na raiz fornece 
 | Alvo         | Descrição                                                                 |
 |--------------|---------------------------------------------------------------------------|
 | `make`       | Compila todos os `.cpp` de `src/` (e subpastas) em `build/`, mantendo a estrutura de diretórios, e gera o executável `build/ecu_simulator`. |
-| `make run`   | Compila (se necessário) e executa `build/ecu_simulator`.                  |
+| `make run`   | Compila (se necessário) e executa `build/ecu_simulator` com o cenário padrão. |
 | `make test`  | Compila os testes de `tests/` com os `.cpp` do projeto (exceto `main.cpp`) e executa `build/tests_runner`. |
 | `make clean` | Remove tudo o que foi gerado em `build/`.                                 |
 | `make docs`  | Gera a documentação Doxygen em `build/docs/`.                             |
@@ -73,9 +73,51 @@ As flags obrigatórias (`-std=c++11 -Wall -Wextra -I include`) já são definida
 
 No Linux, basta ter `g++` e `make` instalados. No Windows, use o MSYS2 (`pacman -S make mingw-w64-x86_64-gcc`) ou invoque `mingw32-make` dentro do MSYS2/MinGW.
 
+### Rodando o simulador com o cenário de exemplo
+
+Da raiz do projeto:
+
+```
+make
+./build/ecu_simulator
+```
+
+O executável sem argumentos usa `data/scenarios/exemplo.csv` como cenário de entrada e grava a telemetria em `data/logs/exemplo.log`. Para apontar para outros arquivos:
+
+```
+./build/ecu_simulator <cenario.csv> <arquivo_de_log>
+```
+
+Qualquer exceção lançada pelos subsistemas é capturada em `main()` e impressa com mensagem clara; o programa retorna código de saída diferente de zero sem travar.
+
 ## Funcionalidades
 
-*Em construção.* As funcionalidades serão habilitadas progressivamente nos próximos checkpoints — o C7 fixa apenas o contrato das classes e os testes TDD; a lógica interna é implementada no C8.
+O checkpoint C8 encerra a fase verde do TDD: todas as classes do núcleo estão implementadas e os 51 testes da suíte doctest passam.
+
+- **Leitura de cenário em CSV** (`SensorManager`): cada linha tem o formato `pedal,engineTemp,batteryTemp,brakePressure,voltage`. Linhas vazias ou mal formatadas são puladas em silêncio (`advance()`); a sobrecarga `advanceStrict()` sinaliza o consumidor com `TelemetryParseError`.
+- **Máquina de Estados do veículo** (`VehicleState` + `IdleState`/`DriveState`/`FaultState`): aplica o padrão *State*. `Idle` bloqueia pedal e troca de mapa; `Drive` processa pedal e autoriza troca dinâmica entre Eco/MidTerm/Sport; `Fault` é terminal, zera a requisição de torque e grava o motivo no log.
+- **Mapeador de torque** (`TorqueMapper`): interpolação linear entre os pontos da tabela ativa, rampa mecânica (`kMaxTorqueDelta`) entre ticks consecutivos e teto absoluto de segurança (`kMaxTorque`). Clampa pedal para `[0, 100]`.
+- **Monitor de segurança** (`SafetyMonitor`): lança `UndervoltageFault` abaixo de 60 V, `OvertemperatureFault` em motor ou bateria a partir de 80 °C, `ShutdownOpenFault` quando o circuito está aberto e `PrechargeTimeoutFault` após estouro do contador de pré-carga. Entre 60 °C e 80 °C emite *warning* térmico sem interromper o ciclo.
+- **Logger de telemetria** (`DataLogger`): grava cada registro prefixado por *timestamp* e tag (`SAMPLE`, `MODE`, `WARN`, `ERROR`). Eventos `ERROR` recebem *flush* imediato para garantir persistência mesmo em caso de pane posterior.
+- **Orquestrador** (`ECUController`): dirige o *Main Loop* (`run()`/`tick()`), consulta o `SafetyMonitor` em cada iteração, delega o pedal ao `TorqueMapper` quando o estado corrente aceita, grava amostras no `DataLogger` e força transição para `FaultState` (com *latching*: uma vez em Fault, não volta sozinho).
+- **Hierarquia de exceções** (`EcuException` e derivadas) para separar falhas semânticas do simulador de erros genéricos de C++.
+
+### Cenário de exemplo
+
+`data/scenarios/exemplo.csv` traz 11 ticks que exercitam o fluxo completo:
+
+1. Dois ticks em repouso (`pedal = 0`).
+2. Aceleração progressiva até `pedal = 100 %`.
+3. Aquecimento gradual do motor, acionando o *warning* térmico aos 60 °C.
+4. Último tick com `engineTemp = 82 °C`, que dispara `OvertemperatureFault` → transição para `FaultState`.
+
+Executando `make run` (ou `./build/ecu_simulator`) a partir da raiz do projeto o simulador lê esse cenário e grava `data/logs/exemplo.log`, com linhas `SAMPLE`, `WARN` e, no final, um `ERROR` registrando o motivo da falha.
+
+Para rodar com outro cenário:
+
+```
+./build/ecu_simulator data/scenarios/outro.csv data/logs/outro.log
+```
 
 ## Testes
 
@@ -95,14 +137,9 @@ Para rodar:
 make test
 ```
 
-### Status atual — fase vermelha do TDD
+### Status atual — fase verde do TDD (C8)
 
-Este checkpoint (C7) adota a disciplina de TDD: os testes foram escritos **antes** da implementação, a partir dos critérios de aceitação das user stories em `design/user_stories.md`. As classes de domínio em `src/` existem apenas como esqueletos (métodos retornam valores padrão ou nada fazem, marcados com `// TODO C8`).
-
-Como consequência, hoje:
-
-- Os testes de `test_exceptions.cpp` **passam** (as exceções são `inline` nos headers e já estão prontas).
-- Os demais testes **falham** intencionalmente — isso é a fase vermelha do ciclo *red → green → refactor* e será resolvida no checkpoint C8, quando a lógica interna de cada classe for implementada.
+Os testes foram escritos no C7 a partir dos critérios de aceitação das user stories em `design/user_stories.md`. No C8 as classes do núcleo foram implementadas até fazer todos os casos passarem — todos os 51 TEST_CASE da suíte doctest estão em verde, sem *warnings* com `-Wall -Wextra`.
 
 ## Documentação
 
