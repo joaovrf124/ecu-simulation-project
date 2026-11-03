@@ -50,8 +50,8 @@ public:
      * @brief Abre o arquivo CSV configurado e posiciona-se antes da
      *        primeira linha de dados.
      *
-     * @throws ecu::exceptions::TelemetryParseError se o arquivo não puder
-     *         ser aberto (não existe, sem permissão, caminho inválido).
+     * @throws ecu::exceptions::FileIOException se o arquivo não puder ser
+     *         aberto (não existe, sem permissão, caminho inválido).
      */
     void open();
 

@@ -49,7 +49,7 @@ public:
     /**
      * @brief Abre o arquivo de saída para gravação (modo truncar).
      *
-     * @throws ecu::exceptions::EcuException se o arquivo não puder ser
+     * @throws ecu::exceptions::FileIOException se o arquivo não puder ser
      *         aberto para escrita (sem permissão, diretório inexistente).
      */
     void open();

@@ -1,6 +1,6 @@
 #include "io/DataLogger.hpp"
 
-#include "exceptions/TelemetryParseError.hpp"
+#include "exceptions/FileIOException.hpp"
 
 namespace ecu {
 namespace io {
@@ -24,10 +24,7 @@ void DataLogger::open() {
     // comeca com um log limpo.
     m_stream.open(m_outputPath.c_str());
     if (!m_stream.is_open()) {
-        // Nao existe uma excecao especifica de I/O na hierarquia; usamos
-        // TelemetryParseError (unica derivada de EcuException ligada a
-        // persistencia textual) para honrar o contrato "@throws EcuException".
-        throw ecu::exceptions::TelemetryParseError(
+        throw ecu::exceptions::FileIOException(
             "Nao foi possivel abrir arquivo de log: " + m_outputPath);
     }
     m_recordCount = 0;

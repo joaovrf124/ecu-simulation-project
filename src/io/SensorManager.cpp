@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 
+#include "exceptions/FileIOException.hpp"
 #include "exceptions/TelemetryParseError.hpp"
 
 namespace ecu {
@@ -67,7 +68,8 @@ SensorManager::~SensorManager() noexcept {
 void SensorManager::open() {
     m_stream.open(m_filePath.c_str());
     if (!m_stream.is_open()) {
-        throw ecu::exceptions::TelemetryParseError(
+        // Problema de I/O (arquivo nao existe/sem permissao): FileIOException.
+        throw ecu::exceptions::FileIOException(
             "Nao foi possivel abrir o CSV de telemetria: " + m_filePath);
     }
     m_open = true;
