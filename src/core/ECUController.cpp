@@ -1,6 +1,7 @@
 #include "core/ECUController.hpp"
 
 #include <exception>
+#include <stdexcept>
 #include <string>
 #include <typeinfo>
 
@@ -45,11 +46,17 @@ void ECUController::initialize() {
 }
 
 void ECUController::tick() {
+    // Pre-condicao: initialize() precisa ter sido chamado antes do primeiro
+    // tick, para que haja um estado corrente ao qual delegar o processamento.
+    if (!m_currentState) {
+        throw std::logic_error(
+            "ECUController::tick chamado antes de initialize()");
+    }
+
     // Latching: Fault e terminal. Qualquer tick posterior e no-op para
     // garantir que o veiculo nao volte sozinho para Idle/Drive mesmo que a
     // leitura seguinte seja normal.
-    if (m_currentState &&
-        typeid(*m_currentState) == typeid(ecu::state::FaultState)) {
+    if (typeid(*m_currentState) == typeid(ecu::state::FaultState)) {
         return;
     }
 
@@ -102,8 +109,11 @@ void ECUController::stop() noexcept {
 }
 
 void ECUController::transitionTo(std::unique_ptr<ecu::state::VehicleState> newState) {
+    // Pre-condicao: estado alvo deve existir; passar nullptr e erro de
+    // contrato (nao configurar FSM com estado "nulo").
     if (!newState) {
-        return;
+        throw std::invalid_argument(
+            "ECUController::transitionTo recebeu estado nulo");
     }
     if (m_currentState) {
         // Respeita o veto do estado atual: se a transicao nao for

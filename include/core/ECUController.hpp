@@ -84,6 +84,10 @@ public:
      *  3. delega ao estado atual o tratamento do pedal e a interação com
      *     o `TorqueMapper`;
      *  4. grava a linha de telemetria no `DataLogger`.
+     *
+     * @pre `initialize()` já foi chamado (há um estado corrente).
+     * @throws std::logic_error se `tick()` for chamado antes de
+     *         `initialize()`.
      */
     void tick();
 
@@ -110,7 +114,9 @@ public:
      * `onEnter` do novo estado é chamada logo após — ambas recebem uma
      * referência a este controlador.
      *
+     * @pre `newState` não é um `std::unique_ptr` vazio.
      * @param newState Novo estado (posse transferida ao controlador).
+     * @throws std::invalid_argument se `newState` for nulo.
      */
     void transitionTo(std::unique_ptr<ecu::state::VehicleState> newState);
 
