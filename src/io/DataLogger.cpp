@@ -5,6 +5,19 @@
 namespace ecu {
 namespace io {
 
+namespace {
+
+// Guarda de pre-condicao usada por todos os metodos de gravacao: lanca
+// FileIOException com rotulo da operacao se o arquivo nao estiver aberto.
+void requireOpen(bool open, const char* op) {
+    if (!open) {
+        throw ecu::exceptions::FileIOException(
+            std::string("DataLogger: ") + op + " chamado com arquivo nao aberto");
+    }
+}
+
+} // namespace
+
 DataLogger::DataLogger(const std::string& outputPath)
     : m_outputPath(outputPath),
       m_stream(),
@@ -45,9 +58,7 @@ void DataLogger::logSample(unsigned long timestamp,
                            double pedal,
                            double torque,
                            double temperature) {
-    if (!m_stream.is_open()) {
-        return;
-    }
+    requireOpen(m_stream.is_open(), "logSample");
     m_stream << timestamp << ",SAMPLE,"
              << pedal << ',' << torque << ',' << temperature << '\n';
     ++m_recordCount;
@@ -55,27 +66,21 @@ void DataLogger::logSample(unsigned long timestamp,
 
 void DataLogger::logModeChange(unsigned long timestamp,
                                const std::string& modeLabel) {
-    if (!m_stream.is_open()) {
-        return;
-    }
+    requireOpen(m_stream.is_open(), "logModeChange");
     m_stream << timestamp << ",MODE," << modeLabel << '\n';
     ++m_recordCount;
 }
 
 void DataLogger::logWarning(unsigned long timestamp,
                             const std::string& message) {
-    if (!m_stream.is_open()) {
-        return;
-    }
+    requireOpen(m_stream.is_open(), "logWarning");
     m_stream << timestamp << ",WARN," << message << '\n';
     ++m_recordCount;
 }
 
 void DataLogger::logError(unsigned long timestamp,
                           const std::string& reason) {
-    if (!m_stream.is_open()) {
-        return;
-    }
+    requireOpen(m_stream.is_open(), "logError");
     // Flush imediato: eventos criticos precisam estar em disco mesmo que o
     // controlador quebre no proximo tick (US07 - CA3).
     m_stream << timestamp << ",ERROR," << reason << '\n';
