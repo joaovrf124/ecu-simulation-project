@@ -49,7 +49,7 @@ public:
     /**
      * @brief Abre o arquivo de saída para gravação (modo truncar).
      *
-     * @throws ecu::exceptions::EcuException se o arquivo não puder ser
+     * @throws ecu::exceptions::FileIOException se o arquivo não puder ser
      *         aberto para escrita (sem permissão, diretório inexistente).
      */
     void open();
@@ -69,11 +69,15 @@ public:
      * @brief Registra uma amostra contínua do ciclo (pedal, torque,
      *        temperatura).
      *
+     * @pre `isOpen() == true` — o arquivo precisa ter sido aberto por
+     *      `open()` antes desta chamada.
      * @param timestamp   Contagem de tick do ciclo em que a amostra foi
      *                    coletada.
      * @param pedal       Posição do pedal (%).
      * @param torque      Torque calculado para o ciclo.
      * @param temperature Temperatura observada (motor ou bateria).
+     * @throws ecu::exceptions::FileIOException se o arquivo não estiver
+     *         aberto quando a função for chamada.
      */
     void logSample(unsigned long timestamp,
                    double pedal,
@@ -83,17 +87,23 @@ public:
     /**
      * @brief Registra a troca do modo de torque ativo.
      *
+     * @pre `isOpen() == true`.
      * @param timestamp Tick em que a troca ocorreu.
      * @param modeLabel Rótulo legível do novo modo (`"Eco"`, `"MidTerm"`,
      *                  `"Sport"`).
+     * @throws ecu::exceptions::FileIOException se o arquivo não estiver
+     *         aberto.
      */
     void logModeChange(unsigned long timestamp, const std::string& modeLabel);
 
     /**
      * @brief Registra um alerta não-crítico (ex.: temperatura em 60 °C).
      *
+     * @pre `isOpen() == true`.
      * @param timestamp Tick do alerta.
      * @param message   Mensagem descritiva do alerta.
+     * @throws ecu::exceptions::FileIOException se o arquivo não estiver
+     *         aberto.
      */
     void logWarning(unsigned long timestamp, const std::string& message);
 
@@ -102,8 +112,11 @@ public:
      *        sobretemperatura, abertura do *Shutdown*, timeout de
      *        pré-carga).
      *
+     * @pre `isOpen() == true`.
      * @param timestamp Tick do evento.
      * @param reason    Mensagem descritiva do erro.
+     * @throws ecu::exceptions::FileIOException se o arquivo não estiver
+     *         aberto.
      */
     void logError(unsigned long timestamp, const std::string& reason);
 

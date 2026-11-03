@@ -1,8 +1,10 @@
 #include "io/SensorManager.hpp"
 
+#include <cmath>
 #include <sstream>
 #include <string>
 
+#include "exceptions/FileIOException.hpp"
 #include "exceptions/TelemetryParseError.hpp"
 
 namespace ecu {
@@ -10,10 +12,29 @@ namespace io {
 
 namespace {
 
+// Faixas fisicas aceitas pelos campos da telemetria. Valores fora dessas
+// faixas (ou NaN/inf) sao tratados como linha invalida — pulados por
+// advance(), reportados como TelemetryParseError por advanceStrict().
+const double kPedalMin   = 0.0;
+const double kPedalMax   = 100.0;
+const double kTempMin    = -40.0;
+const double kTempMax    = 200.0;
+const double kBrakeMin   = 0.0;
+const double kBrakeMax   = 500.0;
+const double kVoltageMin = 0.0;
+const double kVoltageMax = 1000.0;
+
+bool isFiniteAndInRange(double value, double lo, double hi) {
+    if (std::isnan(value) || std::isinf(value)) {
+        return false;
+    }
+    return value >= lo && value <= hi;
+}
+
 // Converte uma linha CSV `pedal,engineTemp,batteryTemp,brakePressure,voltage`
-// em cinco doubles. Devolve false se a linha estiver vazia, com numero errado
-// de campos, ou se algum campo nao for numerico. Nao altera os parametros em
-// caso de falha.
+// em cinco doubles. Devolve false se a linha estiver vazia, com numero
+// errado de campos, com algum campo nao numerico, ou com valor fora das
+// faixas fisicas aceitas. Nao altera os parametros em caso de falha.
 bool parseCsvLine(const std::string& line,
                   double& pedal, double& engineTemp, double& batteryTemp,
                   double& brakePressure, double& voltage) {
@@ -36,6 +57,13 @@ bool parseCsvLine(const std::string& line,
     if (iss >> extra) {
         return false;
     }
+    // Validacao de faixa fisica — RNF04 + programacao defensiva.
+    if (!isFiniteAndInRange(a, kPedalMin,   kPedalMax))   return false;
+    if (!isFiniteAndInRange(b, kTempMin,    kTempMax))    return false;
+    if (!isFiniteAndInRange(c, kTempMin,    kTempMax))    return false;
+    if (!isFiniteAndInRange(d, kBrakeMin,   kBrakeMax))   return false;
+    if (!isFiniteAndInRange(e, kVoltageMin, kVoltageMax)) return false;
+
     pedal = a;
     engineTemp = b;
     batteryTemp = c;
@@ -67,12 +95,19 @@ SensorManager::~SensorManager() noexcept {
 void SensorManager::open() {
     m_stream.open(m_filePath.c_str());
     if (!m_stream.is_open()) {
-        throw ecu::exceptions::TelemetryParseError(
+        // Problema de I/O (arquivo nao existe/sem permissao): FileIOException.
+        throw ecu::exceptions::FileIOException(
             "Nao foi possivel abrir o CSV de telemetria: " + m_filePath);
     }
     m_open = true;
     // peek() nao consome o caractere; apenas inspeciona se ha conteudo.
     m_hasNext = (m_stream.peek() != EOF);
+    if (!m_hasNext) {
+        // Arquivo abriu mas esta vazio: nao e falha de I/O, e falha de
+        // conteudo esperada pelo consumidor.
+        throw ecu::exceptions::TelemetryParseError(
+            "Arquivo de telemetria vazio: " + m_filePath);
+    }
 }
 
 bool SensorManager::advance() {
@@ -111,7 +146,7 @@ bool SensorManager::advanceStrict() {
     double p, et, bt, bp, v;
     if (!parseCsvLine(line, p, et, bt, bp, v)) {
         throw ecu::exceptions::TelemetryParseError(
-            "Linha de telemetria mal formatada: " + line);
+            "Linha de telemetria invalida: " + line);
     }
     m_pedal = p;
     m_engineTemp = et;

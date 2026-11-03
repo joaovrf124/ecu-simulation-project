@@ -74,12 +74,17 @@ public:
     /**
      * @brief Substitui a tabela de pontos associada a um modo.
      *
-     * A tabela deve estar ordenada por `pedal` crescente e cobrir ao menos
-     * os extremos 0% e 100% para que a interpolação funcione em todo o
-     * domínio.
+     * A tabela deve estar ordenada por `pedal` estritamente crescente e
+     * cobrir idealmente os extremos 0% e 100% para que a interpolação
+     * funcione em todo o domínio.
      *
+     * @pre `points` não é vazio.
+     * @pre Os valores de `pedal` dos pontos são estritamente crescentes
+     *      (nenhum duplicado, nenhuma inversão).
      * @param mode   Modo cuja tabela será substituída.
      * @param points Lista de pontos `(pedal, torque)` que define o mapa.
+     * @throws std::invalid_argument se `points` estiver vazio, se houver
+     *         pontos duplicados ou fora de ordem.
      */
     void setMapTable(TorqueMode mode, const std::vector<TorquePoint>& points);
 

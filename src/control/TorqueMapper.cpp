@@ -1,6 +1,7 @@
 #include "control/TorqueMapper.hpp"
 
 #include <cstddef>
+#include <stdexcept>
 
 namespace ecu {
 namespace control {
@@ -50,6 +51,20 @@ TorqueMapper::~TorqueMapper() noexcept {}
 
 void TorqueMapper::setMapTable(TorqueMode mode,
                                const std::vector<TorquePoint>& points) {
+    // Pre-condicoes: tabela util precisa de pelo menos um ponto e os pedais
+    // devem ser estritamente crescentes (sem duplicatas nem inversoes),
+    // pois a interpolacao assume essa ordem.
+    if (points.empty()) {
+        throw std::invalid_argument(
+            "TorqueMapper::setMapTable: tabela vazia");
+    }
+    for (std::size_t i = 1; i < points.size(); ++i) {
+        if (points[i].pedal <= points[i - 1].pedal) {
+            throw std::invalid_argument(
+                "TorqueMapper::setMapTable: pontos nao ordenados por pedal "
+                "crescente ou duplicados");
+        }
+    }
     switch (mode) {
         case TorqueMode::Eco:     m_tableEco   = points; break;
         case TorqueMode::MidTerm: m_tableMid   = points; break;
