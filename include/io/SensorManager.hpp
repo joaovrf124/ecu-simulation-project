@@ -22,9 +22,13 @@ namespace io {
  *
  * O formato esperado de cada linha do CSV é:
  * `pedal,engineTemp,batteryTemp,brakePressure,voltage` — todos em `double`,
- * separados por vírgula. Linhas em branco ou cujo parse falhe são puladas
- * silenciosamente; a exceção `TelemetryParseError` só é lançada quando o
- * consumidor chama a sobrecarga `advanceStrict()` e deseja reagir à falha.
+ * separados por vírgula. Além da verificação sintática, cada campo é
+ * validado em faixa física razoável: `pedal ∈ [0, 100]`, temperaturas em
+ * `[-40, 200] °C`, pressão de freio e tensão não-negativas e finitas (sem
+ * `NaN` nem infinito). Linhas em branco, mal formatadas ou com valores
+ * fora dessas faixas são puladas silenciosamente por `advance()`
+ * (RNF04); já `advanceStrict()` lança `TelemetryParseError` para que o
+ * consumidor possa reagir.
  */
 class SensorManager {
 public:
@@ -52,6 +56,8 @@ public:
      *
      * @throws ecu::exceptions::FileIOException se o arquivo não puder ser
      *         aberto (não existe, sem permissão, caminho inválido).
+     * @throws ecu::exceptions::TelemetryParseError se o arquivo abriu mas
+     *         está vazio (sem nenhuma linha útil para a simulação).
      */
     void open();
 
@@ -66,12 +72,15 @@ public:
 
     /**
      * @brief Variante estrita de `advance()`: lança exceção se a linha
-     *        corrente estiver mal formatada, em vez de pular.
+     *        corrente estiver mal formatada ou com valores fisicamente
+     *        impossíveis, em vez de pular.
      *
      * @return `true` se uma nova linha válida foi lida; `false` ao final
      *         do arquivo.
      * @throws ecu::exceptions::TelemetryParseError quando a linha não é
-     *         conformante com o formato esperado.
+     *         conformante com o formato esperado (campos faltando/a mais,
+     *         valor não numérico, `NaN`/`inf`, ou valor físico fora da
+     *         faixa aceita).
      */
     bool advanceStrict();
 
