@@ -55,8 +55,10 @@ void ECUController::tick() {
 
     // Latching: Fault e terminal. Qualquer tick posterior e no-op para
     // garantir que o veiculo nao volte sozinho para Idle/Drive mesmo que a
-    // leitura seguinte seja normal.
+    // leitura seguinte seja normal. Tambem encerra o loop cooperativo para
+    // que run() nao fique preso em iteracoes vazias apos a falha.
     if (typeid(*m_currentState) == typeid(ecu::state::FaultState)) {
+        m_running = false;
         return;
     }
 
