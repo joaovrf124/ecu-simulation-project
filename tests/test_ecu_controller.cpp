@@ -242,6 +242,36 @@ TEST_CASE("ECUController: execucao do run() encerra corretamente ao fim do arqui
     std::remove(log.c_str());
 }
 
+TEST_CASE("ECUController: run() retorna quando o cenario termina em FaultState") {
+    // Regressao: antes do fix, tick() em FaultState retornava sem mexer em
+    // m_running; run() ficava preso iterando sem avancar os sensores.
+    const std::string csv = "build/test_ctrl_run_fault.csv";
+    const std::string log = "build/test_ctrl_run_fault.log";
+
+    // Tick 1 normal -> Idle. Tick 2 com subtensao (55V) -> Fault.
+    // Apos a transicao o loop deve encerrar sozinho.
+    writeTempCsv(csv,
+                 "0.0,25.0,25.0,0.0,72.0\n"
+                 "0.1,25.0,25.0,0.0,55.0\n");
+
+    SensorManager sensors(csv);
+    sensors.open();
+    SafetyMonitor safety(sensors);
+    TorqueMapper torque;
+    torque.setMapTable(TorqueMode::Eco, smallMap());
+    DataLogger logger(log);
+    logger.open();
+
+    ECUController controller(sensors, safety, torque, logger);
+    controller.initialize();
+
+    CHECK_NOTHROW(controller.run());
+    CHECK(std::string(controller.currentState().name()) == "Fault");
+
+    std::remove(csv.c_str());
+    std::remove(log.c_str());
+}
+
 TEST_CASE("ECUController: lida com excecoes matematicas ou de parse indo para FaultState") {
     // US02 / Protecao arquitetural - Uma excecao atirada pelos modulos inferiores nao deve desligar o software inteiro
     const std::string csv = "build/test_ctrl_exception.csv";
