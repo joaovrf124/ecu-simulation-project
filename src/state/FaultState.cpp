@@ -1,47 +1,52 @@
 #include "state/FaultState.hpp"
 
+#include "control/TorqueMapper.hpp"
+#include "core/ECUController.hpp"
+#include "io/DataLogger.hpp"
+#include "io/SensorManager.hpp"
+
 namespace ecu {
 namespace state {
 
 FaultState::FaultState(const std::string& reason)
-    : m_reason(reason) {
-    // TODO C8
-}
+    : m_reason(reason) {}
 
-FaultState::~FaultState() noexcept {
-    // TODO C8
-}
+FaultState::~FaultState() noexcept {}
 
-void FaultState::onEnter(ecu::core::ECUController& /*controller*/) {
-    // TODO C8
+void FaultState::onEnter(ecu::core::ECUController& controller) {
+    // Zera a rampa do mapeador para interromper qualquer requisicao em curso
+    // e grava o motivo da falha com o tick corrente da simulacao. O
+    // DataLogger so e usado se ja estiver aberto; caso contrario, apenas
+    // ignora silenciosamente para nao mascarar outra excecao em cadeia.
+    controller.torqueMapper().reset();
+    if (controller.dataLogger().isOpen()) {
+        const unsigned long t = controller.sensorManager().currentTick();
+        controller.dataLogger().logError(t, m_reason);
+    }
 }
 
 void FaultState::onExit(ecu::core::ECUController& /*controller*/) {
-    // TODO C8
+    // Estado terminal: nunca sai, nada a fazer.
 }
 
 bool FaultState::acceptsThrottleInput() const noexcept {
-    // TODO C8
     return false;
 }
 
 bool FaultState::acceptsTorqueMapSwitch() const noexcept {
-    // TODO C8
     return false;
 }
 
 bool FaultState::canTransitionTo(const VehicleState& /*target*/) const noexcept {
-    // TODO C8
+    // Terminal: nenhuma saida autorizada.
     return false;
 }
 
 const char* FaultState::name() const noexcept {
-    // TODO C8
     return "Fault";
 }
 
 const std::string& FaultState::reason() const noexcept {
-    // TODO C8
     return m_reason;
 }
 

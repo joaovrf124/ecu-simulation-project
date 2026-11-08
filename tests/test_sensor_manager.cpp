@@ -8,9 +8,11 @@
 #include <fstream>
 #include <string>
 
+#include "exceptions/FileIOException.hpp"
 #include "exceptions/TelemetryParseError.hpp"
 #include "io/SensorManager.hpp"
 
+using ecu::exceptions::FileIOException;
 using ecu::exceptions::TelemetryParseError;
 using ecu::io::SensorManager;
 
@@ -97,9 +99,9 @@ TEST_CASE("SensorManager: advanceStrict() lanca TelemetryParseError em linha inv
 }
 
 TEST_CASE("SensorManager: open() lanca em arquivo inexistente") {
-    // US06 - caminho invalido deve ser reportado
+    // US06 - caminho invalido deve ser reportado como falha de I/O (C9).
     SensorManager sm("build/arquivo_que_nao_existe_12345.csv");
-    CHECK_THROWS_AS(sm.open(), TelemetryParseError);
+    CHECK_THROWS_AS(sm.open(), FileIOException);
 }
 
 TEST_CASE("SensorManager: tick inicial e zero antes do primeiro advance") {

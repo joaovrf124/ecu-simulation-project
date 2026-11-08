@@ -1,65 +1,104 @@
 #include "io/DataLogger.hpp"
 
+#include "exceptions/FileIOException.hpp"
+
 namespace ecu {
 namespace io {
+
+namespace {
+
+// Guarda de pre-condicao usada por todos os metodos de gravacao: lanca
+// FileIOException com rotulo da operacao se o arquivo nao estiver aberto.
+void requireOpen(bool open, const char* op) {
+    if (!open) {
+        throw ecu::exceptions::FileIOException(
+            std::string("DataLogger: ") + op + " chamado com arquivo nao aberto");
+    }
+}
+
+} // namespace
 
 DataLogger::DataLogger(const std::string& outputPath)
     : m_outputPath(outputPath),
       m_stream(),
-      m_recordCount(0) {
-    // TODO C8
-}
+      m_recordCount(0) {}
 
 DataLogger::~DataLogger() noexcept {
-    // TODO C8
+    // Garante flush fisico no disco mesmo que o chamador tenha omitido o
+    // close() apos uma excecao.
+    if (m_stream.is_open()) {
+        m_stream.flush();
+        m_stream.close();
+    }
 }
 
 void DataLogger::open() {
-    // TODO C8
+    // Abre em modo truncar (default do std::ofstream): cada corrida
+    // comeca com um log limpo.
+    m_stream.open(m_outputPath.c_str());
+    if (!m_stream.is_open()) {
+        throw ecu::exceptions::FileIOException(
+            "Nao foi possivel abrir arquivo de log: " + m_outputPath);
+    }
+    m_recordCount = 0;
 }
 
 void DataLogger::close() noexcept {
-    // TODO C8
+    if (m_stream.is_open()) {
+        m_stream.flush();
+        m_stream.close();
+    }
 }
 
 bool DataLogger::isOpen() const noexcept {
-    // TODO C8
-    return false;
+    return m_stream.is_open();
 }
 
-void DataLogger::logSample(unsigned long /*timestamp*/,
-                           double /*pedal*/,
-                           double /*torque*/,
-                           double /*temperature*/) {
-    // TODO C8
+void DataLogger::logSample(unsigned long timestamp,
+                           double pedal,
+                           double torque,
+                           double temperature) {
+    requireOpen(m_stream.is_open(), "logSample");
+    m_stream << timestamp << ",SAMPLE,"
+             << pedal << ',' << torque << ',' << temperature << '\n';
+    ++m_recordCount;
 }
 
-void DataLogger::logModeChange(unsigned long /*timestamp*/,
-                               const std::string& /*modeLabel*/) {
-    // TODO C8
+void DataLogger::logModeChange(unsigned long timestamp,
+                               const std::string& modeLabel) {
+    requireOpen(m_stream.is_open(), "logModeChange");
+    m_stream << timestamp << ",MODE," << modeLabel << '\n';
+    ++m_recordCount;
 }
 
-void DataLogger::logWarning(unsigned long /*timestamp*/,
-                            const std::string& /*message*/) {
-    // TODO C8
+void DataLogger::logWarning(unsigned long timestamp,
+                            const std::string& message) {
+    requireOpen(m_stream.is_open(), "logWarning");
+    m_stream << timestamp << ",WARN," << message << '\n';
+    ++m_recordCount;
 }
 
-void DataLogger::logError(unsigned long /*timestamp*/,
-                          const std::string& /*reason*/) {
-    // TODO C8
+void DataLogger::logError(unsigned long timestamp,
+                          const std::string& reason) {
+    requireOpen(m_stream.is_open(), "logError");
+    // Flush imediato: eventos criticos precisam estar em disco mesmo que o
+    // controlador quebre no proximo tick (US07 - CA3).
+    m_stream << timestamp << ",ERROR," << reason << '\n';
+    m_stream.flush();
+    ++m_recordCount;
 }
 
 void DataLogger::flush() noexcept {
-    // TODO C8
+    if (m_stream.is_open()) {
+        m_stream.flush();
+    }
 }
 
 const std::string& DataLogger::outputPath() const noexcept {
-    // TODO C8
     return m_outputPath;
 }
 
 unsigned long DataLogger::recordCount() const noexcept {
-    // TODO C8
     return m_recordCount;
 }
 
