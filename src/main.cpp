@@ -45,13 +45,13 @@ int main(int argc, char* argv[]) {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // --- Variáveis de Estado da Simulação (Powertrain Elétrico) ---
+    // --- Variáveis de Estado da Simulação ---
     bool ts_active = false;
     float pedal_acelerador = 0.0f;
     float torque_aplicado = 0.0f;
     float temp_motor = 25.0f;
     float temp_bateria = 25.0f;
-    float tensao_hv = 400.0f;
+    float tensao_hv = 76.0f;
     
     const int HISTORICO_TAM = 200;
     std::vector<float> historico_torque(HISTORICO_TAM, 0.0f);
@@ -65,21 +65,26 @@ int main(int argc, char* argv[]) {
         ImGui::NewFrame();
 
         // --- Dinâmica do Veículo Elétrico ---
+        // Regra do Shutdown baseada no SafetyMonitor (80 C)
+        bool shutdown_aberto = (temp_motor >= 80.0f || temp_bateria >= 80.0f || tensao_hv < 60.0f);
+
+        if (shutdown_aberto) {
+            ts_active = false; 
+        }
+
         if (ts_active) {
-            float torque_alvo = (pedal_acelerador / 100.0f) * 240.0f; // Ex: 240Nm max
-            torque_aplicado += (torque_alvo - torque_aplicado) * 0.15f; // Rampa de torque
+            float torque_alvo = (pedal_acelerador / 100.0f) * 240.0f; 
+            torque_aplicado += (torque_alvo - torque_aplicado) * 0.15f; 
             
-            // Aquecimento sob carga
             if (temp_motor < 85.0f) temp_motor += (torque_aplicado / 240.0f) * 0.05f;
             if (temp_bateria < 65.0f) temp_bateria += (torque_aplicado / 240.0f) * 0.02f;
             
-            // Queda de tensão do acumulador sob demanda de corrente
-            tensao_hv = 400.0f - (torque_aplicado * 0.08f); 
+            tensao_hv = 76.0f - (torque_aplicado * 0.08f); 
         } else {
             torque_aplicado += (0.0f - torque_aplicado) * 0.2f;
             if (temp_motor > 25.0f) temp_motor -= 0.01f;
             if (temp_bateria > 25.0f) temp_bateria -= 0.005f;
-            tensao_hv = 400.0f;
+            tensao_hv = 76.0f;
         }
 
         historico_torque[offset_grafico] = torque_aplicado;
@@ -132,11 +137,21 @@ int main(int argc, char* argv[]) {
         ImGui::Text("Leituras do Powertrain:");
         
         if (ImGui::BeginTable("TabelaEV", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+            
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0); ImGui::Text("Circuito de Shutdown");
+            ImGui::TableSetColumnIndex(1); 
+            if (shutdown_aberto) {
+                ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "ABERTO (FALHA)");
+            } else {
+                ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "FECHADO (OK)");
+            }
+
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0); ImGui::Text("Tensao do Acumulador (HV)");
             ImGui::TableSetColumnIndex(1); 
-            if (tensao_hv < 360.0f) {
-                ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "%.1f V (UNDERVOLTAGE)", tensao_hv);
+            if (tensao_hv < 60.0f) {
+                ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "%.1f V (UNDERVOLTAGE)");
             } else {
                 ImGui::Text("%.1f V", tensao_hv);
             }
@@ -153,7 +168,9 @@ int main(int argc, char* argv[]) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0); ImGui::Text("Temperatura da Bateria");
             ImGui::TableSetColumnIndex(1); 
-            if (temp_bateria >= 60.0f) {
+            if (temp_bateria >= 80.0f) {
+                ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "%.1f C (FAULT)", temp_bateria);
+            } else if (temp_bateria >= 60.0f) {
                 ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "%.1f C (WARN)", temp_bateria);
             } else {
                 ImGui::Text("%.1f C", temp_bateria);
