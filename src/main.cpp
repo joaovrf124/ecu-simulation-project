@@ -47,10 +47,12 @@ int main(int argc, char* argv[]) {
 
     // --- Variáveis de Estado da Simulação ---
     bool ts_active = false;
+    bool precharge_completa = false;
     float pedal_acelerador = 0.0f;
     float torque_aplicado = 0.0f;
     float temp_motor = 25.0f;
     float temp_bateria = 25.0f;
+    float tensao_base = 76.0f; 
     float tensao_hv = 76.0f;
     
     const int HISTORICO_TAM = 200;
@@ -65,11 +67,16 @@ int main(int argc, char* argv[]) {
         ImGui::NewFrame();
 
         // --- Dinâmica do Veículo Elétrico ---
-        // Regra do Shutdown baseada no SafetyMonitor (80 C)
         bool shutdown_aberto = (temp_motor >= 80.0f || temp_bateria >= 80.0f || tensao_hv < 60.0f);
 
         if (shutdown_aberto) {
             ts_active = false; 
+            precharge_completa = false; 
+        }
+
+        // Interlock da Pré-Carga
+        if (!precharge_completa) {
+            ts_active = false;
         }
 
         if (ts_active) {
@@ -79,12 +86,12 @@ int main(int argc, char* argv[]) {
             if (temp_motor < 85.0f) temp_motor += (torque_aplicado / 240.0f) * 0.05f;
             if (temp_bateria < 65.0f) temp_bateria += (torque_aplicado / 240.0f) * 0.02f;
             
-            tensao_hv = 76.0f - (torque_aplicado * 0.08f); 
+            tensao_hv = tensao_base - (torque_aplicado * 0.08f); 
         } else {
             torque_aplicado += (0.0f - torque_aplicado) * 0.2f;
             if (temp_motor > 25.0f) temp_motor -= 0.01f;
             if (temp_bateria > 25.0f) temp_bateria -= 0.005f;
-            tensao_hv = 76.0f;
+            tensao_hv = tensao_base;
         }
 
         historico_torque[offset_grafico] = torque_aplicado;
@@ -92,11 +99,17 @@ int main(int argc, char* argv[]) {
 
         // --- JANELAS IMGUI ---
         ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(420, 320), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(420, 380), ImGuiCond_FirstUseEver);
         ImGui::Begin("Bancada de Controle (Entradas)");
 
-        ImGui::Text("Estado do Sistema:");
-        ImGui::Checkbox("Tractive System Active (Drive)", &ts_active);
+        ImGui::Text("Sequencia de Inicializacao (EV):");
+        ImGui::Checkbox("1. Pre-Carga Concluida", &precharge_completa);
+
+        if (!precharge_completa) {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "[!] Conclua a Pre-Carga para liberar o TS");
+        }
+
+        ImGui::Checkbox("2. Tractive System Active (Drive)", &ts_active);
         
         ImGui::Separator();
         ImGui::Text("Controle de Acelerador:");
@@ -112,6 +125,7 @@ int main(int argc, char* argv[]) {
 
         ImGui::Separator();
         ImGui::Text("Injecao de Falhas (Sensores):");
+        ImGui::SliderFloat("Tensao Base (V)", &tensao_base, 0.0f, 450.0f, "%.1f V");
         ImGui::SliderFloat("Temp. Motor (C)", &temp_motor, 0.0f, 100.0f, "%.1f C");
         ImGui::SliderFloat("Temp. Bateria (C)", &temp_bateria, 0.0f, 100.0f, "%.1f C");
         ImGui::End();
@@ -139,6 +153,15 @@ int main(int argc, char* argv[]) {
         if (ImGui::BeginTable("TabelaEV", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
             
             ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0); ImGui::Text("Status da Pre-Carga");
+            ImGui::TableSetColumnIndex(1); 
+            if (precharge_completa) {
+                ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "CONCLUIDA (OK)");
+            } else {
+                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "PENDENTE");
+            }
+
+            ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0); ImGui::Text("Circuito de Shutdown");
             ImGui::TableSetColumnIndex(1); 
             if (shutdown_aberto) {
@@ -151,7 +174,7 @@ int main(int argc, char* argv[]) {
             ImGui::TableSetColumnIndex(0); ImGui::Text("Tensao do Acumulador (HV)");
             ImGui::TableSetColumnIndex(1); 
             if (tensao_hv < 60.0f) {
-                ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "%.1f V (UNDERVOLTAGE)");
+                ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "%.1f V (UNDERVOLTAGE)", tensao_hv);
             } else {
                 ImGui::Text("%.1f V", tensao_hv);
             }
