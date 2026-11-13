@@ -124,4 +124,60 @@ public:
      * @brief Consulta o estado atual do veículo.
      * @return Referência constante ao objeto de estado corrente.
      */
+    const ecu::state::VehicleState& currentState() const;
+
+    /**
+     * @brief Força a transição imediata para `FaultState` com o motivo
+     *        informado.
+     *
+     * Utilizado pelo `SafetyMonitor` (via callback do próprio controlador)
+     * quando uma falha crítica precisa interromper o ciclo em curso —
+     * abertura do Shutdown System, subtensão, sobretemperatura ou
+     * timeout de pré-carga.
+     *
+     * @param reason Descrição textual da falha, gravada pelo `DataLogger`.
+     */
+    void forceFault(const std::string& reason);
+
+    /**
+     * @brief Acesso somente-leitura ao `TorqueMapper` para uso dos
+     *        estados durante suas rotinas.
+     * @return Referência ao mapeador de torque associado.
+     */
+    ecu::control::TorqueMapper& torqueMapper() const noexcept;
+
+    /**
+     * @brief Acesso somente-leitura ao `DataLogger` para uso dos estados
+     *        durante suas rotinas.
+     * @return Referência ao registrador associado.
+     */
+    ecu::io::DataLogger& dataLogger() const noexcept;
+
+    /**
+     * @brief Acesso somente-leitura ao `SafetyMonitor` para uso dos
+     *        estados durante suas rotinas.
+     * @return Referência ao monitor de segurança associado.
+     */
+    ecu::safety::SafetyMonitor& safetyMonitor() const noexcept;
+
+    /**
+     * @brief Acesso somente-leitura ao `SensorManager` para uso dos
+     *        estados durante suas rotinas.
+     * @return Referência ao gerenciador de sensores associado.
+     */
+    ecu::io::SensorManager& sensorManager() const noexcept;
+
+private:
+    ecu::io::SensorManager& m_sensors;
+    ecu::safety::SafetyMonitor& m_safety;
+    ecu::control::TorqueMapper& m_torque;
+    ecu::io::DataLogger& m_logger;
+    std::unique_ptr<ecu::state::VehicleState> m_currentState;
+    bool m_running;
+};
+
+} // namespace core
+} // namespace ecu
+
+#endif // ECU_CORE_ECUCONTROLLER_HPP
 
